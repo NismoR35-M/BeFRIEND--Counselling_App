@@ -7,15 +7,10 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.group.project.adapters.ArticlesAdapter
-import com.group.project.apiClient.ApiInterface
-import com.group.project.apiClient.RetrofitInstance
+import com.group.project.network.RetrofitInstance
 import com.group.project.databinding.ActivityArticlesBinding
-import com.group.project.models.DataRespond
-import kotlinx.android.synthetic.main.activity_articles.*
 import retrofit2.*
-import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
-import java.lang.StringBuilder
 
 //const val BASE_URL = "https://egercounsel.herokuapp.com/articles/"
 const val TAG = "ArticlesActivity"

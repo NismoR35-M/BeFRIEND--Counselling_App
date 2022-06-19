@@ -1,4 +1,4 @@
-package com.group.project.apiClient
+package com.group.project.network
 
 
 import retrofit2.Retrofit

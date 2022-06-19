@@ -61,6 +61,33 @@
 
         </LinearLayout>
 
+        <FrameLayout
+            android:id="@+id/layoutImage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/_10sdp"
+            android:layout_gravity="center">
+
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/imageProfile"
+                android:layout_width="86dp"
+                android:layout_height="86dp"
+                android:layout_marginLeft="5dp"
+                android:padding="5dp"
+                app:civ_border_color="@color/green"
+                android:src="@color/white"
+                app:civ_border_width="2dp"/>
+            <TextView
+                android:id="@+id/txtAddImage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="Add Image"
+                android:textColor="@color/black"
+                android:textSize="10sp"/>
+
+        </FrameLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -207,7 +234,14 @@
                 android:text="Register"
                 android:textColor="@color/white"
                 android:textSize="15sp"/>
+
         </LinearLayout>
+        <ProgressBar
+            android:id="@+id/progrssBar"
+            android:layout_width="@dimen/_25sdp"
+            android:layout_height="@dimen/_25sdp"
+            android:layout_gravity="center"
+            android:visibility="invisible"/>
 
         <LinearLayout
             android:layout_width="match_parent"

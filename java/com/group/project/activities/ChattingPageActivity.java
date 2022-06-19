@@ -1,43 +1,58 @@
 package com.group.project.activities;
 
-import android.app.Dialog;
-import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.util.Base64;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
 
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-import com.group.project.R;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.firebase.firestore.DocumentChange;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.group.project.adapters.ChatAdapter;
 import com.group.project.databinding.ActivityChattingPageBinding;
-import com.group.project.models.MessageModel;
-import com.squareup.picasso.Picasso;
+import com.group.project.models.ChatMessage;
+import com.group.project.models.Users;
+import com.group.project.network.ApiClient;
+import com.group.project.network.ApiService;
+import com.group.project.utils.Constants;
+import com.group.project.utils.PreferenceManager;
 
-import org.jitsi.meet.sdk.JitsiMeetActivity;
-import org.jitsi.meet.sdk.JitsiMeetConferenceOptions;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
-public class ChattingPageActivity extends AppCompatActivity {
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+public class ChattingPageActivity extends BaseActivity{
 
     ActivityChattingPageBinding binding;
-    FirebaseAuth mAuth;
-    FirebaseDatabase database;
+    private Users receiverUser;
+    private List<ChatMessage> chatMessages;
+    private ChatAdapter chatAdapter;
+    private PreferenceManager preferenceManager;
+    private FirebaseFirestore database;
+    private String conversionId = null;
+    private Boolean isReceiverAvailable = false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,132 +60,259 @@ public class ChattingPageActivity extends AppCompatActivity {
         binding = ActivityChattingPageBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        setListeners();
+        loadReceiverDetails();
+        init();
+        listenMessages();
+
         getSupportActionBar().hide();
+    }
 
-        //initialize firebase
-        mAuth = FirebaseAuth.getInstance();
-        database = FirebaseDatabase.getInstance();
-
-        //fetch username,profile pic and id from the intent
-        final String senderId = mAuth.getUid();
-        String receiveId = getIntent().getStringExtra("userId");
-        String userName = getIntent().getStringExtra("userName");
-        String profilePic = getIntent().getStringExtra("profilePic");
-
-        //binding profile pic and !profilePic user default image
-        binding.userName.setText(userName);
-        Picasso.get().load(profilePic).placeholder(R.mipmap.ic_launcher_round).into(binding.profileImage);
-
-        //binding back button
-        binding.backArrow.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent i = new Intent(ChattingPageActivity.this, MainActivity.class);
-                startActivity(i);
-            }
-        });
-
-        //binding video call
-        binding.roomVideo.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-               showDialog();
-            }
-        });
-
-        final ArrayList<MessageModel> messageModels = new ArrayList<>();
-        final ChatAdapter chatAdapter = new ChatAdapter(messageModels, this,receiveId);
-
+    private void init() {
+        preferenceManager = new PreferenceManager(getApplicationContext());
+        chatMessages = new ArrayList<>();
+        chatAdapter = new ChatAdapter(
+                chatMessages,
+                getBitmapFromEncodedString(receiverUser.image),
+                preferenceManager.getString(Constants.KEY_USER_ID)
+        );
         binding.chatRecyclerview.setAdapter(chatAdapter);
+        database = FirebaseFirestore.getInstance();
+    }
 
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        binding.chatRecyclerview.setLayoutManager(layoutManager);
+    private void sendMessage() {
+        HashMap<String, Object> message = new HashMap<>();
+        message.put(Constants.KEY_SENDER_ID, preferenceManager.getString(Constants.KEY_USER_ID));
+        message.put(Constants.KEY_RECEIVER_ID, receiverUser.id);
+        message.put(Constants.KEY_MESSAGE, binding.inputMessage.getText().toString());
+        message.put(Constants.KEY_TIMESTAMP, new Date());
+        database.collection(Constants.KEY_COLLECTION_CHAT).add(message);
+        if (conversionId != null) {
+            updateConversion(binding.inputMessage.getText().toString());
+        } else {
+            HashMap<String, Object> conversion = new HashMap<>();
+            conversion.put(Constants.KEY_SENDER_ID, preferenceManager.getString(Constants.KEY_USER_ID));
+            conversion.put(Constants.KEY_SENDER_NAME, preferenceManager.getString(Constants.KEY_SENDER_NAME));
+            conversion.put(Constants.KEY_SENDER_IMAGE, preferenceManager.getString(Constants.KEY_IMAGE));
+            conversion.put(Constants.KEY_RECEIVER_ID, receiverUser.id);
+            conversion.put(Constants.KEY_RECEIVER_NAME, receiverUser.username);
+            conversion.put(Constants.KEY_RECEIVER_IMAGE, receiverUser.image);
+            conversion.put(Constants.KEY_LAST_MESSAGE, binding.inputMessage.getText().toString());
+            conversion.put(Constants.KEY_TIMESTAMP, new Date());
+            addConversion(conversion);
+        }
+        if (!isReceiverAvailable) {
+            try {
+                JSONArray tokens = new JSONArray();
+                tokens.put(receiverUser.token);
 
-        final String senderRoom = senderId + receiveId;
-        final String receiverRoom = receiveId + senderId;
+                JSONObject data = new JSONObject();
+                data.put(Constants.KEY_USER_ID, preferenceManager.getString(Constants.KEY_USER_ID));
+                data.put(Constants.KEY_USERNAME, preferenceManager.getString(Constants.KEY_USERNAME));
+                data.put(Constants.KEY_FCM_TOKEN, preferenceManager.getString(Constants.KEY_FCM_TOKEN));
+                data.put(Constants.KEY_MESSAGE, binding.inputMessage.getText().toString());
 
-        //show messages on screen
-        database.getReference().child("chats")
-                .child(senderRoom)
+                JSONObject body = new JSONObject();
+                body.put(Constants.REMOTE_MSG_DATA, data);
+                body.put(Constants.REMOTE_MSG_REGISTRATION_IDS, tokens);
 
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        messageModels.clear();
-                        for (DataSnapshot snapshot1 : snapshot.getChildren()) {
-                            MessageModel model = snapshot1.getValue(MessageModel.class);
-                            assert model != null;
-                            model.setMessageId(snapshot1.getKey());
-                            messageModels.add(model);
-                        }
-                        chatAdapter.notifyDataSetChanged();
-                    }
+                sendNotification(body.toString());
+            } catch (Exception exception) {
+                showToast(exception.getMessage());
+            }
+        }
+        binding.inputMessage.setText(null);
+    }
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
+    private void showToast(String message) {
+        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+    }
 
-                    }
-                });
-
-        binding.send.setOnClickListener(new View.OnClickListener() {
+    //send push notification
+    private void sendNotification(String messageBody) {
+        ApiClient.getClient().create(ApiService.class).sendMessage(
+                Constants.getRemoteMsgHeaders(),
+                messageBody
+        ).enqueue(new Callback<String>() {
             @Override
-            public void onClick(View view) {
-                String message = binding.enterMessage.getText().toString();
-                final MessageModel model = new MessageModel(senderId, message);
-                model.setTimestamp(new Date().getTime());
-                binding.enterMessage.setText("");
-
-                //store message
-                database.getReference().child("chats")
-                        .child(senderRoom)
-                        .push()
-                        .setValue(model).addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void unused) {
-                        database.getReference().child("chats")
-                                .child(receiverRoom)
-                                .push()
-                                .setValue(model).addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void unused) {
-
+            public void onResponse(@NonNull Call<String> call, @NonNull Response<String> response) {
+                if (response.isSuccessful()) {
+                    try {
+                        if (response.body() != null) {
+                            JSONObject responseJson = new JSONObject(response.body());
+                            JSONArray results = responseJson.getJSONArray("results");
+                            if (responseJson.getInt("failure") == 1) {
+                                JSONObject error = (JSONObject) results.get(0);
+                                showToast(error.getString("error"));
+                                return;
                             }
-                        });
+                        }
+                    }catch (JSONException e) {
+                        e.printStackTrace();
                     }
-                });
+                    showToast("Notification sent successfully");
+                } else {
+                    showToast("Error: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<String> call, @NonNull Throwable t) {
+                showToast(t.getMessage());
             }
         });
+    }
+
+    private void  listenAvailabilityOfReceiver() {
+        database.collection(Constants.KEY_COLLECTION_USERS).document(receiverUser.id)
+                .addSnapshotListener(ChattingPageActivity.this, (value, error) -> {
+                    if (error != null) {
+                        return;
+                    }
+                    if (value != null) {
+                        if (value.getLong(Constants.KEY_AVAILABILITY) != null) {
+                            int availability = Objects.requireNonNull(
+                                    value.getLong(Constants.KEY_AVAILABILITY)
+                            ).intValue();
+                            isReceiverAvailable = availability == 1;
+                        }
+                        receiverUser.token = value.getString(Constants.KEY_FCM_TOKEN);
+                        if (receiverUser.image == null) {
+                            receiverUser.image = value.getString(Constants.KEY_IMAGE);
+                            chatAdapter.setReceiverProfileImage(getBitmapFromEncodedString(receiverUser.image));
+                            chatAdapter.notifyItemRangeChanged(0,chatMessages.size());
+                        }
+                    }
+                    if (isReceiverAvailable) {
+                        binding.textAvailability.setVisibility(View.VISIBLE);
+                    } else {
+                        binding.textAvailability.setVisibility(View.GONE);
+                    }
+                });
+    }
+
+
+    /* reference it here https://youtu.be/pAzby-pyStM?t=1035 */
+    private void listenMessages() {
+        database.collection(Constants.KEY_COLLECTION_CHAT)
+                .whereEqualTo(Constants.KEY_SENDER_ID, preferenceManager.getString(Constants.KEY_USER_ID))
+                .whereEqualTo(Constants.KEY_RECEIVER_ID, receiverUser.id)
+                .addSnapshotListener(eventListener);
+        database.collection(Constants.KEY_COLLECTION_CHAT)
+                .whereEqualTo(Constants.KEY_SENDER_ID, receiverUser.id)
+                .whereEqualTo(Constants.KEY_RECEIVER_ID, preferenceManager.getString(Constants.KEY_USER_ID))
+                .addSnapshotListener(eventListener);
+    }
+
+    /* complicated logic, check this reference  https://youtu.be/pAzby-pyStM?t=695 */
+    private final EventListener<QuerySnapshot> eventListener = (value, error) -> {
+        if (error != null) {
+            return;
+        }
+        if (value != null) {
+            int count = chatMessages.size();
+            for (DocumentChange documentChange : value.getDocumentChanges()) {
+
+                if (documentChange.getType() == DocumentChange.Type.ADDED) {
+                    ChatMessage chatMessage = new ChatMessage();
+                    chatMessage.senderId = documentChange.getDocument().getString(Constants.KEY_SENDER_ID);
+                    chatMessage.receiverId = documentChange.getDocument().getString(Constants.KEY_RECEIVER_ID);
+                    chatMessage.message = documentChange.getDocument().getString(Constants.KEY_MESSAGE);
+                    chatMessage.dateTime = getReadableDateTime(documentChange.getDocument().getDate(Constants.KEY_TIMESTAMP));
+                    chatMessage.dateObject = documentChange.getDocument().getDate(Constants.KEY_TIMESTAMP);
+                    chatMessages.add(chatMessage);
+                }
+
+            }
+            Collections.sort(chatMessages, (obj1, obj2) -> obj1.dateObject.compareTo(obj2.dateObject));
+            if (count == 0) {
+                chatAdapter.notifyDataSetChanged();
+            } else {
+                chatAdapter.notifyItemRangeInserted(chatMessages.size(), chatMessages.size());
+                binding.chatRecyclerview.smoothScrollToPosition(chatMessages.size() - 1);
+            }
+            binding.chatRecyclerview.setVisibility(View.VISIBLE);
+
+        }
+        binding.progressBar.setVisibility(View.GONE);
+        if (conversionId == null) {
+            checkForConversion();
+        }
+    };
+
+    private Bitmap getBitmapFromEncodedString(String encodedImage) {
+        if (encodedImage != null) {
+
+            byte[] bytes = Base64.decode(encodedImage, Base64.DEFAULT);
+            return BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+        } else {
+            return null;
+        }
 
     }
 
-    private void showDialog() {
-        Dialog dialog = new Dialog(this);
-        dialog.setContentView(R.layout.custom_dialog);
-        dialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_window);
-        Button btnJoin = dialog.findViewById(R.id.btn_join);
-        EditText room = dialog.findViewById(R.id.room_id);
-        btnJoin.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (room.getText().toString().isEmpty()){
-                    Toast.makeText(ChattingPageActivity.this, "Enter Room ID", Toast.LENGTH_SHORT).show();
-                } else {
-                    try {
-                        JitsiMeetConferenceOptions options = new JitsiMeetConferenceOptions.Builder()
-                                .setServerURL(new URL("https://meet.jit.si"))
-                                .setRoom(room.getText().toString())
-                                .setAudioOnly(true)
-                                .build();
-                        JitsiMeetActivity.launch(ChattingPageActivity.this, options);
+    private void loadReceiverDetails() {
+        receiverUser = (Users) getIntent().getSerializableExtra(Constants.KEY_USER);
+        binding.txtName.setText(receiverUser.username);
+    }
 
-                    } catch (MalformedURLException e){
-                        e.printStackTrace();
-                    }
+    private void setListeners() {
+        binding.imageBack.setOnClickListener(v -> onBackPressed());
+        binding.layoutSend.setOnClickListener(v -> sendMessage());
+    }
 
-                }
-                dialog.dismiss();
-            }
-        });
-        dialog.show();
+    private String getReadableDateTime(Date date) {
+        return new SimpleDateFormat("MMMM dd, yyyy - hh:mm", Locale.getDefault()).format(date);
+    }
+
+
+
+    private void addConversion(HashMap<String, Object> conversion) {
+        database.collection(Constants.KEY_COLLECTION_CONVERSATIONS)
+                .add(conversion)
+                .addOnSuccessListener(documentReference -> conversionId = documentReference.getId());
+    }
+
+    private void updateConversion(String message) {
+        DocumentReference documentReference =
+                database.collection(Constants.KEY_COLLECTION_CONVERSATIONS).document(conversionId);
+        documentReference.update(
+                Constants.KEY_LAST_MESSAGE, message,
+                Constants.KEY_TIMESTAMP, new Date()
+        );
+    }
+
+    private void checkForConversion() {
+        if (chatMessages.size() != 0) {
+            checkConversionRemotely(
+                    preferenceManager.getString(Constants.KEY_USER_ID),
+                    receiverUser.id
+            );
+            checkConversionRemotely(
+                    receiverUser.id,
+                    preferenceManager.getString(Constants.KEY_USER_ID)
+            );
+        }
+    }
+
+    private void checkConversionRemotely(String senderId, String receiverId) {
+        database.collection(Constants.KEY_COLLECTION_CONVERSATIONS)
+                .whereEqualTo(Constants.KEY_SENDER_ID, senderId)
+                .whereEqualTo(Constants.KEY_RECEIVER_ID, receiverId)
+                .get()
+                .addOnCompleteListener(conversionOnCompleteListener);
+    }
+
+    private final OnCompleteListener<QuerySnapshot> conversionOnCompleteListener = task -> {
+        if (task.isSuccessful() && task.getResult() != null && task.getResult().getDocuments().size() > 0) {
+            DocumentSnapshot documentSnapshot = task.getResult().getDocuments().get(0);
+            conversionId = documentSnapshot.getId();
+        }
+    };
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        listenAvailabilityOfReceiver();
     }
 }
