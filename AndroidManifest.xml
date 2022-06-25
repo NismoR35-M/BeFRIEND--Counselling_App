@@ -14,7 +14,7 @@
         android:usesCleartextTraffic="true">
         <activity
             android:name=".activities.OutgoingInvitationActivity"
-            android:screenOrientation="fullSensor"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.IncomingInvitationActivity"

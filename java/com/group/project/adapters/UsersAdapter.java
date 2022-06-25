@@ -1,105 +1,125 @@
 package com.group.project.adapters;
 
-import android.content.Context;
-import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.TextView;
-
-import androidx.annotation.NonNull;
-
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.group.project.R;
-import com.group.project.activities.ChattingPageActivity;
-import com.group.project.models.Users;
-import com.squareup.picasso.Picasso;
-
+import androidx.annotation.NonNull;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.group.project.databinding.ItemContainerUserBinding;
+import com.group.project.listeners.UserListeners;
+import com.group.project.models.Users;
+
 import java.util.ArrayList;
+import java.util.List;
 
-public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> {
+public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHolder> {
 
-    //create variable for arraylist
-    ArrayList<Users> list;
-    Context context;
+    //now insert the users in the list
+    private final List<Users> users;
+    private final UserListeners userListeners;
+    private List<Users> selectedUsers;
 
-    public UsersAdapter(ArrayList<Users> list, Context context) {
-        this.list = list;
-        this.context = context;
+    public UsersAdapter(List<Users> users, UserListeners userListeners) {
+        this.users = users;
+        this.userListeners = userListeners;
+        selectedUsers = new ArrayList<>();
     }
 
+    public List<Users> getSelectedUsers() {
+        return selectedUsers;
+    }
+
+    //adapter view methods
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.sample_show_user, parent,false);
-        return new ViewHolder(view);
+    public UserViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        ItemContainerUserBinding itemContainerUserBinding = ItemContainerUserBinding.inflate(
+                LayoutInflater.from(parent.getContext()),
+                parent, false
+        );
+        return new UserViewHolder(itemContainerUserBinding);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-
-        Users users = list.get(position);
-        Picasso.get().load(users.getProfilePic()).placeholder(R.mipmap.ic_launcher_round).into(holder.image);
-        holder.userName.setText(users.getUserName());
-
-        /*display last message on the chat screen. use SQL order by keyword*/
-        FirebaseDatabase.getInstance().getReference().child("chats")
-                .child(FirebaseAuth.getInstance().getUid() + users.getUserId())
-                .orderByChild("timestamp")
-                .limitToLast(1)
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        if (snapshot.hasChildren()){
-                            for (DataSnapshot snapshot1 : snapshot.getChildren()) {
-                                holder.lastMessage.setText(snapshot1.child("message").getValue().toString());
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-
-                    }
-                });
-
-        //when user clicks message or profile pic
-        holder.itemView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent i = new Intent(context, ChattingPageActivity.class);
-                i.putExtra("userId",users.getUserId());
-                i.putExtra("profilePic",users.getProfilePic());
-                i.putExtra("userName",users.getUserName());
-                context.startActivity(i);
-            }
-        });
+    public void onBindViewHolder(@NonNull UserViewHolder holder, int position) {
+        holder.setUserData(users.get(position));
 
     }
 
     @Override
     public int getItemCount() {
-        return list.size();
+        return users.size();
     }
 
-    //view holder of profile pic, username and last message
-    public class ViewHolder extends RecyclerView.ViewHolder{
-        ImageView image;
-        TextView userName, lastMessage;
+    //binding user data and layout and inserting them in the recycler view
+    class  UserViewHolder extends RecyclerView.ViewHolder {
 
-        public ViewHolder(@NonNull View itemView) {
-            super(itemView);
+        ItemContainerUserBinding binding;
+        ImageView imageAudioMeeting, imageVideoMeeting;
+        ConstraintLayout userContainer;
+        ImageView imageSelected;
 
-            image = itemView.findViewById(R.id.profilepic);
-            userName = itemView.findViewById(R.id.userNameList);
-            lastMessage = itemView.findViewById(R.id.lastMessage);
+        UserViewHolder(ItemContainerUserBinding itemContainerUserBinding) {
+            super(itemContainerUserBinding.getRoot());
+            binding = itemContainerUserBinding;
+            //audio and video meeting
+            imageAudioMeeting = itemView.findViewById(R.id.imageAudioMeeting);
+            imageVideoMeeting = itemView.findViewById(R.id.imageVideoMeeting);
+            userContainer = itemView.findViewById(R.id.userContainer);
+            imageSelected = itemView.findViewById(R.id.imageSelected);
         }
+
+        void setUserData(Users users) {
+            binding.txtName.setText(users.username);
+            binding.txtEmail.setText(users.email);
+            binding.imageProfile.setImageBitmap(getUserImage(users.image));
+            binding.imageProfile.setOnClickListener(v -> userListeners.onUserClicked(users));
+            //Audio and video meeting
+            binding.imageAudioMeeting.setOnClickListener(view -> userListeners.initiateAudioMeeting(users));
+            binding.imageVideoMeeting.setOnClickListener(view -> userListeners.initiateVideoMeeting(users));
+
+            userContainer.setOnLongClickListener(view -> {
+                if (imageSelected.getVisibility() != View.VISIBLE) {
+                    selectedUsers.add(users);
+                    binding.imageSelected.setVisibility(View.VISIBLE);
+                    binding.imageVideoMeeting.setVisibility(View.GONE);
+                    binding.imageAudioMeeting.setVisibility(View.GONE);
+                    userListeners.onMultipleUsersAction(true);
+                }
+                return true;
+            });
+
+            userContainer.setOnClickListener(view -> {
+                if (imageSelected.getVisibility() == View.VISIBLE) {
+                    selectedUsers.remove(users);
+                    binding.imageSelected.setVisibility(View.GONE);
+                    binding.imageVideoMeeting.setVisibility(View.VISIBLE);
+                    binding.imageAudioMeeting.setVisibility(View.VISIBLE);
+                    if (selectedUsers.size() == 0) {
+                        userListeners.onMultipleUsersAction(false);
+                    }
+                } else {
+                    if (selectedUsers.size() > 0) {
+                        selectedUsers.add(users);
+                        binding.imageSelected.setVisibility(View.VISIBLE);
+                        binding.imageVideoMeeting.setVisibility(View.GONE);
+                        binding.imageAudioMeeting.setVisibility(View.GONE);
+                    }
+                }
+            });
+        }
+
+    }
+
+    private Bitmap getUserImage(String encodedImage) {
+        byte[] bytes = Base64.decode(encodedImage, Base64.DEFAULT);
+        return BitmapFactory.decodeByteArray(bytes,0,bytes.length);
     }
 }

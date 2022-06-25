@@ -1,22 +1,5 @@
 package com.group.project.activities;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.common.reflect.TypeToken;
-import com.google.firebase.installations.FirebaseInstallations;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.gson.Gson;
-import com.group.project.R;
-import com.group.project.models.Users;
-import com.group.project.network.ApiClient;
-import com.group.project.network.ApiService;
-import com.group.project.utils.Constants;
-import com.group.project.utils.PreferenceManager;
-
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -26,6 +9,23 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.common.reflect.TypeToken;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.gson.Gson;
+import com.group.project.R;
+import com.group.project.models.Users;
+import com.group.project.network.ApiClient;
+import com.group.project.network.ApiService;
+import com.group.project.utils.Constants;
+import com.group.project.utils.PreferenceManager;
 
 import org.jitsi.meet.sdk.JitsiMeetActivity;
 import org.jitsi.meet.sdk.JitsiMeetConferenceOptions;
@@ -97,25 +97,24 @@ public class OutgoingInvitationActivity extends AppCompatActivity {
             }
         });
 
-        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
-            @Override
-            public void onComplete(@NonNull Task<String> task) {
-                if (task.isSuccessful() && task.getResult() != null) {
-                    inviterToken = task.getResult(); //check here for token
 
-                    if (meetingType != null) {
-                        if (getIntent().getBooleanExtra("isMultiple",false)){
-                            Type type  = new TypeToken<ArrayList<Users>>(){}.getType();
-                            ArrayList<Users> receivers = new Gson().fromJson(getIntent().getStringExtra("selectedUsers"), type);
-                            if (receivers != null) {
-                                totalReceivers = receivers.size();
-                            }
-                            initiateMeeting(meetingType, null, receivers);
-                        } else {
-                            if (user != null) {
-                                totalReceivers = 1;
-                                initiateMeeting(meetingType, user.token, null);
-                            }
+
+        FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                inviterToken = task.getResult().getToken(); //check here for token
+
+                if (meetingType != null) {
+                    if (getIntent().getBooleanExtra("isMultiple",false)){
+                        Type type  = new TypeToken<ArrayList<Users>>(){}.getType();
+                        ArrayList<Users> receivers = new Gson().fromJson(getIntent().getStringExtra("selectedUsers"), type);
+                        if (receivers != null) {
+                            totalReceivers = receivers.size();
+                        }
+                        initiateMeeting(meetingType, null, receivers);
+                    } else {
+                        if (user != null) {
+                            totalReceivers = 1;
+                            initiateMeeting(meetingType, user.token, null);
                         }
                     }
                 }

@@ -49,7 +49,7 @@ public class UsersActivity extends BaseActivity implements UserListeners {
     //error message
     private void showErrorMessage() {
         binding.txtErrorMessage.setText(String.format("%s", "No Counsellor available"));
-        binding.txtErrorMessage.setVisibility(View.VISIBLE);
+        binding.txtErrorMessage.setVisibility(View.GONE);
     }
 
     //get users from firestore
@@ -120,7 +120,8 @@ public class UsersActivity extends BaseActivity implements UserListeners {
 
         } else {
             Intent intent = new Intent(getApplicationContext(), OutgoingInvitationActivity.class);
-            intent.putExtra("user", users);
+            intent.putExtra(Constants.KEY_USER, users);
+            //intent.putExtra("user", users);
             intent.putExtra("type", "video");
             startActivity(intent);
         }
