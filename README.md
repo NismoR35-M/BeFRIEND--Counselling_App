@@ -28,36 +28,32 @@ color from a color palette.
 Where you can 
 
 ## 📦 Included Features
--  Base 3 themes (Clearly White, Kinda Dark and Just Black)
--  Choose from 10+ now playing themes
--  Driving Mode
--  Headset/Bluetooth support
--  Music duration filter
--  Android auto support
--  Wallpaper accent picker on Android 8.1+
--  Material You support on Android 12+
--  Monet themed icon support on Android 13+
--  Folder support - Play songs by folder
--  Gapless playback
--  Volume controls
--  Carousel effect for album covers
--  Home screen widgets
--  Lock screen playback controls
--  Lyrics screen (download and sync with music)
--  Sleep timer
--  Easy drag to sort playlist & play queue
--  Tag editor
--  Create, edit and import playlists
--  Playing queue with reorder
--  User profile
--  30+ languages support
--  Browse and play your music by songs, albums, artists, playlists and
-  genre
--  Smart Auto Playlists - Recently played, most played and history
--  Build your playlist on the go
 
-We are trying our best to bring you the best user experience. The app is regularly being updated for bug fixes and new features.
+   - Night mode
+   - Translation to different languages
+   - Edit profile
+   - Privacy settings
+   - Friend invitation
+   - Notification of new messages
+   - Blocking unwanted users or rude users
+   - Ability to delete account
+   - Logout
+   - Upload and update profile picture
+   - Bio
+   - Check who is online
+   - Last seen
+   - Read receipts
+   - Video conferencing
+   - Party share screen
+   - Filters such as masks, effects, and filters
+   - Search capability
+   - Communities or groups
+   - Voice call
+   - Voice notes
+   - Chat history
 
+In addition to these features, your app can have many more functionalities that can help users to 
+chat with their friends and make new ones.
 ## 🗂️ License
 
-> Please note: Metro is an offline music player app.
+> Please note: BeFriend uses Firebase and DeepAR which are limited resources for free plan.
