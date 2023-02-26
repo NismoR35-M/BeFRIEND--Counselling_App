@@ -31,9 +31,9 @@
     <string name="frame_rate_value_with_unit">%d fps</string>
 
     <!-- keys -->
-    <string name="server_key">AAAAMgRWZgs:APA91bHfpwh9jSIw0pqiFX9IPXhVL_woD5U4PsZAedUpOVgrpqV7IRvamJr2xtjdwcwxVdrmOigBP4SxRr4gk7u6cz83zSutL0Gypp8Olpfn2YjiSpISrM664xjSU3eS6qp7l12Ksylf </string>
-    <string name="places_api_key" tools:ignore="TypographyDashes">AIzaSyCoezJQ7_58c0bLHXF5wBCjA8-5W0BzJ30</string>
-    <string name="map_box">sk.eyJ1Ijoic3BhY2VzdGVyIiwiYSI6ImNrbmg2djJmdzJpZGQyd2xjeTk3a2twNTQifQ.iIiTRT_GwIYwFMsCWP5XGA</string>
+    <string name="server_key">SERVER_KEY_HERE</string>
+    <string name="places_api_key" tools:ignore="TypographyDashes">PLACES_API_KEY</string>
+    <string name="map_box">MAP_BOX_KEY</string>
 
     <string name="native_ad_unit_id" translatable="false">ca-app-pub-3940256099942544/123456789</string>  <!-- Paste Native Ad unit id here for admob -->
     <string name="banner_ad_unit_id" translatable="false">ca-app-pub-3940256099942544/123456789</string>  <!-- Paste Banner Ad unit id here for admob -->
