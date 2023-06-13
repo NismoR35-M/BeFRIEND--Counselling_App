@@ -73,17 +73,15 @@ public class SendToUsersActivity extends AppCompatActivity {
 
         MobileAds.initialize(getApplicationContext(), initializationStatus -> {
         });
-        AdView mAdView = findViewById(R.id.adView);
-        AdRequest adRequest = new AdRequest.Builder().build();
-        mAdView.loadAd(adRequest);
+
 
         FirebaseDatabase.getInstance().getReference().child("Ads").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (Objects.requireNonNull(snapshot.child("type").getValue()).toString().equals("on")){
-                    mAdView.setVisibility(View.VISIBLE);
+
                 }else {
-                    mAdView.setVisibility(View.GONE);
+
                 }
             }
 

@@ -15,9 +15,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.ads.nativetemplates.TemplateView;
-import com.google.android.gms.ads.AdLoader;
-import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.MobileAds;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -59,9 +56,6 @@ public class AdapterCallLogs extends RecyclerView.Adapter<AdapterCallLogs.MyHold
     public void onBindViewHolder(@NonNull MyHolder holder, int position) {
         holder.setIsRecyclable(false);
 
-        if (position>1 && (position+1) % 4 == 0) {
-            holder.ad.setVisibility(View.VISIBLE);
-        }
 
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Users");
         ref.child(Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid()).child("BlockedUsers").orderByChild("id").equalTo(callModels.get(position).getFrom()).
@@ -179,7 +173,7 @@ public class AdapterCallLogs extends RecyclerView.Adapter<AdapterCallLogs.MyHold
         final ImageView type_voice;
         final ImageView call_in;
         final ImageView call_out;
-        final RelativeLayout ad;
+
 
         public MyHolder(@NonNull View itemView) {
             super(itemView);
@@ -191,19 +185,19 @@ public class AdapterCallLogs extends RecyclerView.Adapter<AdapterCallLogs.MyHold
             type_voice = itemView.findViewById(R.id.type_voice);
             call_in = itemView.findViewById(R.id.call_in);
             call_out = itemView.findViewById(R.id.call_out);
-            ad = itemView.findViewById(R.id.ad);
+
 
             MobileAds.initialize(itemView.getContext(), initializationStatus -> {
             });
-            AdLoader.Builder builder = new AdLoader.Builder(itemView.getContext(), itemView.getContext().getString(R.string.native_ad_unit_id));
-            builder.forUnifiedNativeAd(unifiedNativeAd -> {
-                TemplateView templateView = itemView.findViewById(R.id.my_template);
-                templateView.setNativeAd(unifiedNativeAd);
-            });
-
-            AdLoader adLoader = builder.build();
-            AdRequest adRequest = new AdRequest.Builder().build();
-            adLoader.loadAd(adRequest);
+//            AdLoader.Builder builder = new AdLoader.Builder(itemView.getContext(), itemView.getContext().getString(R.string.native_ad_unit_id));
+//            builder.forUnifiedNativeAd(unifiedNativeAd -> {
+//                TemplateView templateView = itemView.findViewById(R.id.my_template);
+//                templateView.setNativeAd(unifiedNativeAd);
+//            });
+//
+//            AdLoader adLoader = builder.build();
+//            AdRequest adRequest = new AdRequest.Builder().build();
+//            adLoader.loadAd(adRequest);
 
         }
 

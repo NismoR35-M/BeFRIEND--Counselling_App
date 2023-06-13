@@ -14,11 +14,9 @@
             <option value="$PROJECT_DIR$/Stipop" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/deepar" />
-            <option value="$PROJECT_DIR$/nativetemplates" />
           </set>
         </option>
       </GradleProjectSettings>
     </option>
-    <option name="offlineMode" value="true" />
   </component>
 </project>

@@ -23,6 +23,7 @@ import com.group.project.R;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+//Class that handles phone number and verifying it
 public class VerifyActivity extends AppCompatActivity {
 
     private String verificationId;

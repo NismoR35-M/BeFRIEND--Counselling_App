@@ -19,9 +19,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.android.ads.nativetemplates.TemplateView;
-import com.google.android.gms.ads.AdLoader;
-import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
@@ -75,12 +72,6 @@ public class AdapterSendUser extends RecyclerView.Adapter<AdapterSendUser.MyHold
 
     @Override
     public void onBindViewHolder(@NonNull MyHolder holder, int position) {
-
-
-        if (position>1 && (position+1) % 4 == 0) {
-            holder.ad.setVisibility(View.VISIBLE);
-        }
-
 
         requestQueue = Volley.newRequestQueue(context);
 
@@ -245,7 +236,6 @@ public class AdapterSendUser extends RecyclerView.Adapter<AdapterSendUser.MyHold
         final CircleImageView dp;
         final TextView name;
         final TextView phone;
-        final RelativeLayout ad;
 
         public MyHolder(@NonNull View itemView) {
             super(itemView);
@@ -254,20 +244,17 @@ public class AdapterSendUser extends RecyclerView.Adapter<AdapterSendUser.MyHold
             name = itemView.findViewById(R.id.name);
             phone = itemView.findViewById(R.id.phone);
 
-
-            ad = itemView.findViewById(R.id.ad);
-
             MobileAds.initialize(itemView.getContext(), initializationStatus -> {
             });
-            AdLoader.Builder builder = new AdLoader.Builder(itemView.getContext(), itemView.getContext().getString(R.string.native_ad_unit_id));
-            builder.forUnifiedNativeAd(unifiedNativeAd -> {
-                TemplateView templateView = itemView.findViewById(R.id.my_template);
-                templateView.setNativeAd(unifiedNativeAd);
-            });
-
-            AdLoader adLoader = builder.build();
-            AdRequest adRequest = new AdRequest.Builder().build();
-            adLoader.loadAd(adRequest);
+//            AdLoader.Builder builder = new AdLoader.Builder(itemView.getContext(), itemView.getContext().getString(R.string.native_ad_unit_id));
+//            builder.forUnifiedNativeAd(unifiedNativeAd -> {
+//                TemplateView templateView = itemView.findViewById(R.id.my_template);
+//                templateView.setNativeAd(unifiedNativeAd);
+//            });
+//
+//            AdLoader adLoader = builder.build();
+//            AdRequest adRequest = new AdRequest.Builder().build();
+//            adLoader.loadAd(adRequest);
 
         }
 

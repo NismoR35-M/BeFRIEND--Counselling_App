@@ -18,6 +18,7 @@ import com.group.project.R;
 
 import java.util.Objects;
 
+// Class that handles getting one-time authentication code from the Google server
 public class GenerateOTPActivity extends AppCompatActivity {
 
     @SuppressLint("SetTextI18n")

@@ -1,4 +1,3 @@
-include ':nativetemplates'
 include ':deepar'
 include ':SimplePlacePicker-master'
 include ':Stipop'

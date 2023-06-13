@@ -17,7 +17,7 @@ import com.group.project.R;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
+//Class that handles sign up of the user including bio,email and user name
 public class SignUpActivity extends AppCompatActivity {
 
     @Override
